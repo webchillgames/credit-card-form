@@ -1,7 +1,7 @@
 <template>
   <div class="credit-card-form">
-    <form @submit="checkForm">
-      <CreditCard />
+    <form @submit.prevent="checkForm" @click="toggleVisibleSide">
+      <CreditCard :visibleSide="visibleSide" />
 
       <div class="credit-card-form__item">
         <label>Card number</label>
@@ -11,7 +11,6 @@
           @input="onNumberChange"
           :maxlength="LENGTH_WITH_SPACES"
         />
-        <p>{{ cardNumber }}</p>
       </div>
 
       <div class="credit-card-form__item">
@@ -24,15 +23,15 @@
           <label>Expiration Date</label>
 
           <div class="credit-card-form__selects">
-            <select class="credit-card-form__item">
-              <option value="">Month</option>
+            <select v-model="month" class="credit-card-form__item">
+              <option disabled value="">Month</option>
               <option v-for="m in monthOptions" :key="m" :value="m">
                 {{ m }}
               </option>
             </select>
 
-            <select class="credit-card-form__item">
-              <option value="">Year</option>
+            <select v-model="year" class="credit-card-form__item">
+              <option disabled value="">Year</option>
               <option v-for="y in yearOptions" :key="y" :value="y">
                 {{ y }}
               </option>
@@ -42,7 +41,12 @@
 
         <div>
           <label>CVV</label>
-          <input type="text" v-model="cvv" :maxlength="CVV_LENGTH" />
+          <input
+            type="text"
+            v-model="cvv"
+            :maxlength="CVV_LENGTH"
+            data-input="cvv"
+          />
         </div>
       </div>
 
@@ -62,11 +66,13 @@ import { computed, ref, watch } from 'vue'
 import { useCardStore } from './store/card'
 
 import CreditCard from '@/components/CreditCard.vue'
+import { CARD_NUMBER_PLACEHOLDER } from './placeholders'
 
-const { changeNumber, changeName } = useCardStore()
+const { changeCardNumber, changeName, changeMonth, changeYear, changeCvv } =
+  useCardStore()
 
 const LENGTH_WITH_SPACES = 19
-const MASK = '#### #### #### ####'.split('')
+const MASK = CARD_NUMBER_PLACEHOLDER.split('')
 const CVV_LENGTH = 3
 
 const monthOptions = (() => {
@@ -92,8 +98,9 @@ const yearOptions = (() => {
 const cardNumber = ref('')
 const name = ref('')
 const cvv = ref('')
-const month = ref(null)
-const year = ref(null)
+const month = ref('')
+const year = ref('')
+const visibleSide = ref('front')
 
 const isDisabled = computed(() => {
   return (
@@ -107,6 +114,9 @@ const isDisabled = computed(() => {
 
 watch(cardNumber, (n, oldV) => addSpace(n, oldV))
 watch(name, n => changeName(n))
+watch(year, y => changeYear(y))
+watch(month, m => changeMonth(m))
+watch(cvv, c => changeCvv(c))
 
 function addSpace(v: string, oldV: string) {
   const LENGHT_DICT = [4, 9, 14]
@@ -124,14 +134,17 @@ function addSpace(v: string, oldV: string) {
     ...MASK.slice(cardNumber.value.length),
   ].join('')
 
-  changeNumber(res)
+  changeCardNumber(res)
 }
 
 function onNumberChange(event: Event) {
   const targetEl = event.target as HTMLInputElement
-  const v = Number(targetEl.value)
 
-  if (Number.isNaN(v)) {
+  const str = targetEl.value
+  const regExp = /[a-zA-Z]/gm
+  const res = str.match(regExp)
+
+  if (res && res.length > 0) {
     targetEl.value = cardNumber.value
     return
   }
@@ -141,6 +154,16 @@ function onNumberChange(event: Event) {
 }
 
 function checkForm() {}
+
+function toggleVisibleSide(event: Event) {
+  const input = event.target as HTMLInputElement
+
+  if (input.nodeName !== 'INPUT') {
+    return
+  }
+
+  visibleSide.value = input.dataset.input === 'cvv' ? 'back' : 'front'
+}
 </script>
 
 <style lang="scss">

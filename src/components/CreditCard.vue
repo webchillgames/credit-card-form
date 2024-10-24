@@ -1,32 +1,50 @@
 <template>
   <div class="credit-card">
-    <div class="credit-card__top">
-      <img src="/chip.png" />
-      <img src="/visa.png" />
+    <div v-if="visibleSide === 'front'" class="credit-card__front-side">
+      <div class="credit-card__top">
+        <img src="/chip.png" />
+        <img src="/visa.png" />
+      </div>
+
+      <div class="credit-card__center">
+        <p>{{ cardNumber }}</p>
+      </div>
+
+      <ul class="credit-card__bottom">
+        <li>
+          <p>Card Holder</p>
+          <p>{{ name }}</p>
+        </li>
+
+        <li>
+          <p>Expires</p>
+          <p>{{ month }}/{{ year }}</p>
+        </li>
+      </ul>
     </div>
-
-    <div class="credit-card__center">
-      <p>{{ number }}</p>
+    <div v-else class="credit-card__back-side">
+      <div class="credit-card__cvv">
+        <p>CVV</p>
+        <p><span v-for="s in stars" :key="s">*</span></p>
+        <div class="credit-card__img">
+          <img src="/visa.png" />
+        </div>
+      </div>
     </div>
-
-    <ul class="credit-card__bottom">
-      <li>
-        <p>Card Holder</p>
-        <p>{{ name }}</p>
-      </li>
-
-      <li>
-        <p>Expires</p>
-        <p>MM/YY</p>
-      </li>
-    </ul>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { useCardStore } from '@/store/card'
 import { storeToRefs } from 'pinia'
-const { number, name } = storeToRefs(useCardStore())
+import { computed } from 'vue'
+const { month, year, cardNumber, name, cvv } = storeToRefs(useCardStore())
+
+defineProps({
+  visibleSide: { type: String, required: true },
+})
+
+const stars = computed(() => cvv.value.length)
 </script>
 
 <style lang="scss">
@@ -44,18 +62,22 @@ const { number, name } = storeToRefs(useCardStore())
   padding: $step * 2;
   box-sizing: border-box;
   color: #fff;
-  display: grid;
-  grid-template-rows: 1fr 1fr 1fr;
   overflow: hidden;
+
+  img {
+    width: auto;
+    height: 30px;
+  }
+
+  &__front-side {
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
+    height: 100%;
+  }
 
   &__top {
     display: flex;
     justify-content: space-between;
-
-    img {
-      width: auto;
-      height: 30px;
-    }
   }
 
   &__center {
@@ -92,6 +114,52 @@ const { number, name } = storeToRefs(useCardStore())
       max-width: 200px;
       overflow: hidden;
       white-space: nowrap;
+    }
+  }
+
+  &__back-side {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+  &__cvv {
+    width: 100%;
+
+    img {
+      margin-top: $step;
+    }
+
+    p:first-child {
+      margin: 0;
+      text-align: right;
+      color: $divider;
+    }
+
+    p:last-of-type {
+      background-color: #fff;
+      height: 50px;
+      width: 100%;
+      border-radius: $step;
+      margin: 0;
+      flex-shrink: 0;
+      color: $primaryText;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: $step;
+      box-sizing: border-box;
+    }
+  }
+
+  &__img {
+    display: flex;
+    justify-content: flex-end;
+
+    img {
+      margin-top: $step * 2;
+      height: 20px;
     }
   }
 }
