@@ -62,7 +62,7 @@
       <button
         type="submit"
         class="credit-card-form__submit"
-        :disabled="isDisabled"
+        :disabled="!isValid"
       >
         <span>Submit</span>
       </button>
@@ -112,13 +112,12 @@ const year = ref('')
 const visibleSide = ref('front')
 const focusedElement = ref('')
 
-const isDisabled = computed(() => {
+const isValid = computed(() => {
+  const cardIsValid = cardNumber.value.length === 19
+  const cvvIsValid = cvv.value.length === 3
+
   return (
-    !cardNumber.value.length ||
-    !name.value.length ||
-    !cvv.value.length ||
-    !month.value ||
-    !year.value
+    cardIsValid && name.value.length && cvvIsValid && month.value && year.value
   )
 })
 
@@ -127,9 +126,6 @@ watch(name, n => changeName(n))
 watch(year, y => changeYear(y))
 watch(month, m => changeMonth(m))
 watch(cvv, c => changeCvv(c))
-watch(visibleSide, () => {
-  focusedElement.value = ''
-})
 
 function addSpace(v: string, oldV: string) {
   const LENGHT_DICT = [4, 9, 14]
@@ -177,7 +173,6 @@ function toggleVisibleSide(event: Event) {
   if (!el.dataset || !el.dataset.focused) {
     return
   }
-  console.log(el.dataset.focused)
 
   visibleSide.value = el.dataset.focused === 'cvv' ? 'back' : 'front'
 }
@@ -192,7 +187,13 @@ function toggleFocusedElement(event: Event) {
   focusedElement.value = el.dataset.focused
 }
 
-function checkForm() {}
+function checkForm() {
+  if (!isValid.value) {
+    console.log('Форма не отправлена')
+  }
+
+  console.log('Форма отправлена')
+}
 </script>
 
 <style lang="scss">

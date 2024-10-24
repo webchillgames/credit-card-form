@@ -38,7 +38,7 @@
 <script lang="ts" setup>
 import { useCardStore } from '@/store/card'
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 const { month, year, cardNumber, name, cvv } = storeToRefs(useCardStore())
 
 const props = defineProps({
@@ -61,34 +61,38 @@ const size = computed(() => {
 watch(() => props.focusedElement, replaceWrapper)
 
 function replaceWrapper() {
+  const OFFSET = 8
+
   if (props.visibleSide === 'back') {
     wrapperRef.value.style.display = 'none'
     return
   }
 
-  const OFFSET = 8
+  nextTick(() => {
+    let element
 
-  let element
+    switch (props.focusedElement) {
+      case 'card-number':
+        element = cardNumberRef.value
+        break
+      case 'card-holder':
+        element = cardHolderRef.value
+        break
+      case 'expiration-date':
+        element = expiresRef.value
+        break
+      default:
+        element = null
+    }
 
-  switch (props.focusedElement) {
-    case 'card-number':
-      element = cardNumberRef.value
-      break
-    case 'card-holder':
-      element = cardHolderRef.value
-      break
-    case 'expiration-date':
-      element = expiresRef.value
-      break
-    default:
-      element = null
-  }
-
-  wrapperRef.value.style.width = element.clientWidth + OFFSET + 'px'
-  wrapperRef.value.style.height = element.clientHeight + 'px'
-  wrapperRef.value.style.top = element.offsetTop + 'px'
-  wrapperRef.value.style.left = element.offsetLeft - OFFSET + 'px'
-  wrapperRef.value.style.display = 'block'
+    if (element && wrapperRef.value) {
+      wrapperRef.value.style.display = 'block'
+      wrapperRef.value.style.width = element.clientWidth + OFFSET + 'px'
+      wrapperRef.value.style.height = element.clientHeight + 'px'
+      wrapperRef.value.style.top = element.offsetTop + 'px'
+      wrapperRef.value.style.left = element.offsetLeft - OFFSET + 'px'
+    }
+  })
 }
 </script>
 
