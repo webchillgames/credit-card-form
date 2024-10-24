@@ -1,24 +1,25 @@
 <template>
   <div class="credit-card">
+    <div class="credit-card__wrapper" ref="wrapperRef"></div>
     <div v-if="visibleSide === 'front'" class="credit-card__front-side">
       <div class="credit-card__top">
         <img src="/chip.png" />
         <img src="/visa.png" />
       </div>
 
-      <div class="credit-card__center">
+      <div class="credit-card__center" ref="cardNumberRef">
         <p>{{ cardNumber }}</p>
       </div>
 
       <ul class="credit-card__bottom">
-        <li>
+        <li ref="cardHolderRef">
           <p>Card Holder</p>
           <p>{{ name }}</p>
         </li>
 
-        <li>
+        <li ref="expiresRef">
           <p>Expires</p>
-          <p>{{ month }}/{{ year }}</p>
+          <p :style="{ 'font-size': size }">{{ month }}/{{ year }}</p>
         </li>
       </ul>
     </div>
@@ -37,14 +38,58 @@
 <script lang="ts" setup>
 import { useCardStore } from '@/store/card'
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 const { month, year, cardNumber, name, cvv } = storeToRefs(useCardStore())
 
-defineProps({
+const props = defineProps({
   visibleSide: { type: String, required: true },
+  focusedElement: { type: String, required: false },
 })
 
 const stars = computed(() => cvv.value.length)
+const cardNumberRef = ref()
+const cardHolderRef = ref()
+const expiresRef = ref()
+const wrapperRef = ref()
+
+const size = computed(() => {
+  const regExp = /[1-9]/gm
+  const res = `${month.value}${year.value}`.match(regExp)
+  return res && res.length > 0 ? '21px' : 'inherit'
+})
+
+watch(() => props.focusedElement, replaceWrapper)
+
+function replaceWrapper() {
+  if (props.visibleSide === 'back') {
+    wrapperRef.value.style.display = 'none'
+    return
+  }
+
+  const OFFSET = 8
+
+  let element
+
+  switch (props.focusedElement) {
+    case 'card-number':
+      element = cardNumberRef.value
+      break
+    case 'card-holder':
+      element = cardHolderRef.value
+      break
+    case 'expiration-date':
+      element = expiresRef.value
+      break
+    default:
+      element = null
+  }
+
+  wrapperRef.value.style.width = element.clientWidth + OFFSET + 'px'
+  wrapperRef.value.style.height = element.clientHeight + 'px'
+  wrapperRef.value.style.top = element.offsetTop + 'px'
+  wrapperRef.value.style.left = element.offsetLeft - OFFSET + 'px'
+  wrapperRef.value.style.display = 'block'
+}
 </script>
 
 <style lang="scss">
@@ -81,10 +126,14 @@ const stars = computed(() => cvv.value.length)
   }
 
   &__center {
+    display: flex;
+    align-items: center;
+
     p {
       text-align: center;
       font-size: 26px;
       letter-spacing: 1px;
+      margin: 0;
     }
   }
 
@@ -161,6 +210,13 @@ const stars = computed(() => cvv.value.length)
       margin-top: $step * 2;
       height: 20px;
     }
+  }
+
+  &__wrapper {
+    position: absolute;
+    border: 2px solid $light-primary;
+    z-index: 1;
+    border-radius: $step;
   }
 }
 </style>

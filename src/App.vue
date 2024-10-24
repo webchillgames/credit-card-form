@@ -1,7 +1,7 @@
 <template>
   <div class="credit-card-form">
-    <form @submit.prevent="checkForm" @click="toggleVisibleSide">
-      <CreditCard :visibleSide="visibleSide" />
+    <form @submit.prevent="checkForm" @click="onFormClick">
+      <CreditCard :visibleSide="visibleSide" :focusedElement="focusedElement" />
 
       <div class="credit-card-form__item">
         <label>Card number</label>
@@ -10,27 +10,36 @@
           :value="cardNumber"
           @input="onNumberChange"
           :maxlength="LENGTH_WITH_SPACES"
+          data-focused="card-number"
         />
       </div>
 
       <div class="credit-card-form__item">
         <label>Card holder</label>
-        <input type="text" v-model="name" />
+        <input data-focused="card-holder" type="text" v-model="name" />
       </div>
 
       <div class="credit-card-form__item credit-card-form__item--bottom">
-        <div>
+        <div data-focused="expiration-date">
           <label>Expiration Date</label>
 
           <div class="credit-card-form__selects">
-            <select v-model="month" class="credit-card-form__item">
+            <select
+              v-model="month"
+              class="credit-card-form__item"
+              data-focused="expiration-date"
+            >
               <option disabled value="">Month</option>
               <option v-for="m in monthOptions" :key="m" :value="m">
                 {{ m }}
               </option>
             </select>
 
-            <select v-model="year" class="credit-card-form__item">
+            <select
+              v-model="year"
+              class="credit-card-form__item"
+              data-focused="expiration-date"
+            >
               <option disabled value="">Year</option>
               <option v-for="y in yearOptions" :key="y" :value="y">
                 {{ y }}
@@ -45,7 +54,7 @@
             type="text"
             v-model="cvv"
             :maxlength="CVV_LENGTH"
-            data-input="cvv"
+            data-focused="cvv"
           />
         </div>
       </div>
@@ -64,9 +73,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useCardStore } from './store/card'
+import { CARD_NUMBER_PLACEHOLDER } from './placeholders'
 
 import CreditCard from '@/components/CreditCard.vue'
-import { CARD_NUMBER_PLACEHOLDER } from './placeholders'
 
 const { changeCardNumber, changeName, changeMonth, changeYear, changeCvv } =
   useCardStore()
@@ -101,6 +110,7 @@ const cvv = ref('')
 const month = ref('')
 const year = ref('')
 const visibleSide = ref('front')
+const focusedElement = ref('')
 
 const isDisabled = computed(() => {
   return (
@@ -117,6 +127,9 @@ watch(name, n => changeName(n))
 watch(year, y => changeYear(y))
 watch(month, m => changeMonth(m))
 watch(cvv, c => changeCvv(c))
+watch(visibleSide, () => {
+  focusedElement.value = ''
+})
 
 function addSpace(v: string, oldV: string) {
   const LENGHT_DICT = [4, 9, 14]
@@ -153,17 +166,33 @@ function onNumberChange(event: Event) {
   cardNumber.value = input
 }
 
-function checkForm() {}
+function onFormClick(event: Event) {
+  toggleVisibleSide(event)
+  toggleFocusedElement(event)
+}
 
 function toggleVisibleSide(event: Event) {
-  const input = event.target as HTMLInputElement
+  const el = event.target as HTMLInputElement
 
-  if (input.nodeName !== 'INPUT') {
+  if (!el.dataset || !el.dataset.focused) {
+    return
+  }
+  console.log(el.dataset.focused)
+
+  visibleSide.value = el.dataset.focused === 'cvv' ? 'back' : 'front'
+}
+
+function toggleFocusedElement(event: Event) {
+  const el = event.target as HTMLInputElement
+
+  if (!el.dataset || !el.dataset.focused) {
     return
   }
 
-  visibleSide.value = input.dataset.input === 'cvv' ? 'back' : 'front'
+  focusedElement.value = el.dataset.focused
 }
+
+function checkForm() {}
 </script>
 
 <style lang="scss">
