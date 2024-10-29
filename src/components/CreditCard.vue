@@ -180,7 +180,7 @@ watchEffect(() => replaceWrapper(props.focusedElName))
     }
 
     p:last-child {
-      // text-transform: uppercase;
+      text-transform: uppercase;
     }
 
     li:first-child {
@@ -232,6 +232,17 @@ watchEffect(() => replaceWrapper(props.focusedElName))
     img {
       margin-top: $step * 2;
       height: 20px;
+    }
+  }
+
+  @media (max-width: 321px) {
+    width: 100%;
+
+    &__center {
+      p {
+        font-size: 20px;
+        line-height: 24px;
+      }
     }
   }
 }

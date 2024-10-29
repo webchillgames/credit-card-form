@@ -14,8 +14,8 @@
         <input
           v-maska:unmaskedCardNumber.unmasked="cardOrganization?.mask"
           v-model="maskedCardNumber"
-          type="text"
           data-focused="card-number"
+          type="text"
         />
       </div>
 
@@ -234,6 +234,15 @@ function onSubmit() {
     box-sizing: border-box;
     border-radius: $step;
     border: 1px solid $divider;
+  }
+
+  @media (max-width: 768px) {
+    padding: $step;
+    &__item {
+      &--bottom {
+        display: block;
+      }
+    }
   }
 }
 </style>
