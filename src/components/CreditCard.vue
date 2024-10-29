@@ -1,11 +1,14 @@
 <template>
-  <div class="credit-card">
-    <div class="credit-card__wrapper" ref="wrapperRef" :style="styles"></div>
+  <div class="credit-card" :class="visibleSide">
+    <HighlightWrapper
+      ref="wrapperRef"
+      :highlightWrapperStyles="highlightWrapperStyles"
+    />
 
     <div v-if="visibleSide === 'front'" class="credit-card__front-side">
       <div class="credit-card__top">
         <img src="/chip.png" />
-        <img v-if="bankImg" :src="'/' + bankImg" />
+        <BankImg :cardOrganization="cardOrganization" />
       </div>
 
       <div class="credit-card__center" ref="cardNumberRef">
@@ -30,9 +33,9 @@
     <div v-else class="credit-card__back-side">
       <div class="credit-card__cvv">
         <p>CVV</p>
-        <p><span v-for="s in stars" :key="s">*</span></p>
+        <p>{{ cvvStars }}</p>
         <div class="credit-card__img">
-          <img v-if="bankImg" :src="'/' + bankImg" />
+          <BankImg :cardOrganization="cardOrganization" />
         </div>
       </div>
     </div>
@@ -40,17 +43,19 @@
 </template>
 
 <script lang="ts" setup>
-import type { CardOrganizationData, CreditCardInputs, InputName } from '@/types'
-import {
-  defineProps,
-  computed,
-  nextTick,
-  ref,
-  watchEffect,
-  type CSSProperties,
-} from 'vue'
+import type {
+  CardOrganizationData,
+  CreditCardInputs,
+  InputName,
+  SideName,
+} from '@/types'
 
+import { defineProps, computed, watchEffect } from 'vue'
+import { useHighlights } from '@/highlits'
 import { useFormatting } from '@/formatting'
+
+import BankImg from '@/elements/BankImg.vue'
+import HighlightWrapper from '@/elements/HighlightWrapper.vue'
 
 const {
   showFormattedCardHolder,
@@ -59,8 +64,17 @@ const {
   showFormattedMonth,
 } = useFormatting()
 
+const {
+  highlightWrapperStyles,
+  replaceWrapper,
+  cardNumberRef,
+  cardHolderRef,
+  expiresRef,
+  wrapperRef,
+} = useHighlights()
+
 type Props = {
-  visibleSide: string
+  visibleSide: SideName
   focusedElName?: InputName
   data: CreditCardInputs
   cardOrganization?: CardOrganizationData
@@ -68,34 +82,13 @@ type Props = {
 
 const props = defineProps<Props>()
 
-const cardNumberRef = ref<HTMLElement>()
-const cardHolderRef = ref<HTMLElement>()
-const expiresRef = ref<HTMLElement>()
-const wrapperRef = ref<HTMLElement>()
-const styles = ref<CSSProperties>({})
+const cvvStars = computed(() => {
+  let i = 0
 
-type ImgType = {
-  [k: string]: string
-}
-
-const bankImg = computed((): string => {
-  if (!props.cardOrganization) {
-    return ''
-  }
-
-  const dict: ImgType = {
-    visa: 'visa.png',
-    'american Express': 'american-express.png',
-    'diners club': 'diners-club.png',
-    jcb: 'jcb.png',
-    masterCard: 'mastercard.png',
-    discover: 'discover.png',
-  }
-
-  return dict[props.cardOrganization.title]
+  return props.data.cvv.replace(/[1-9]/g, () => {
+    return '***'[i++] || '*'
+  })
 })
-
-const stars = computed(() => props.data.cvv.length)
 
 const size = computed(() => {
   const regExp = /[1-9]/gm
@@ -103,9 +96,9 @@ const size = computed(() => {
   return res && res.length > 0 ? '21px' : 'inherit'
 })
 
-const formattedCardNumber = computed(() =>
-  showFormattedCardNumber(props.data.cardNumber),
-)
+const formattedCardNumber = computed(() => {
+  return showFormattedCardNumber(props.data.cardNumber)
+})
 const formattedYear = computed(() => showFormattedYear(props.data.year))
 const formattedMonth = computed(() => showFormattedMonth(props.data.month))
 const formattedCardHolder = computed(() =>
@@ -113,46 +106,6 @@ const formattedCardHolder = computed(() =>
 )
 
 watchEffect(() => replaceWrapper(props.focusedElName))
-
-async function replaceWrapper(name?: InputName) {
-  if (!name || !wrapperRef.value) {
-    return
-  }
-
-  const OFFSET = 8
-
-  if (props.visibleSide === 'back') {
-    wrapperRef.value.style.display = 'none'
-    return
-  }
-
-  await nextTick()
-
-  const htmlElement = setElement(name)
-
-  function setElement(el: InputName): HTMLElement | undefined {
-    const dict = {
-      'card-number': cardNumberRef.value,
-      'card-holder': cardHolderRef.value,
-      'expiration-date': expiresRef.value,
-      cvv: undefined,
-    }
-
-    return dict[el]
-  }
-
-  if (htmlElement === undefined) {
-    return
-  }
-
-  styles.value = {
-    display: 'block',
-    width: htmlElement.clientWidth + OFFSET + 'px',
-    height: htmlElement.clientHeight + 'px',
-    top: htmlElement.offsetTop + 'px',
-    left: htmlElement.offsetLeft - OFFSET + 'px',
-  }
-}
 </script>
 
 <style lang="scss">
@@ -164,7 +117,14 @@ async function replaceWrapper(name?: InputName) {
   top: 0;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: $primary;
+  background-image: linear-gradient(
+    to right top,
+    #3f51b5,
+    #565eb7,
+    #696bb9,
+    #7979ba,
+    #8987bc
+  );
   z-index: 2;
   border-radius: $step;
   padding: $step * 2;
@@ -201,8 +161,9 @@ async function replaceWrapper(name?: InputName) {
   }
 
   &__bottom {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr max-content;
+    grid-gap: $step;
     align-items: flex-end;
     list-style: none;
     margin: 0;
@@ -219,11 +180,10 @@ async function replaceWrapper(name?: InputName) {
     }
 
     p:last-child {
-      text-transform: uppercase;
+      // text-transform: uppercase;
     }
 
     li:first-child {
-      max-width: 200px;
       overflow: hidden;
       white-space: nowrap;
     }
@@ -273,13 +233,6 @@ async function replaceWrapper(name?: InputName) {
       margin-top: $step * 2;
       height: 20px;
     }
-  }
-
-  &__wrapper {
-    position: absolute;
-    border: 2px solid $light-primary;
-    z-index: 1;
-    border-radius: $step;
   }
 }
 </style>

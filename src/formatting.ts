@@ -8,16 +8,19 @@ export function useFormatting() {
   function showFormattedCardHolder(cardHolder: string): string {
     return cardHolder ? cardHolder : 'Full name'
   }
+
   function showFormattedCardNumber(cardNumber: string) {
+    let currentMask = '#### #### #### ####'
+
     const mask = getCardOrganizationData(cardNumber)?.mask
 
-    if (mask === undefined) {
-      return cardNumber
+    if (mask) {
+      currentMask = mask
     }
 
     let i = 0
 
-    const newStr = mask
+    const newStr = currentMask
       .replace(/#/g, (): string => {
         return cardNumber[i++] || '#'
       })

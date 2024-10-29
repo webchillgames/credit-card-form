@@ -1,8 +1,13 @@
-import { ref } from 'vue'
+import { nextTick, ref, type CSSProperties } from 'vue'
 import type { InputName } from './types'
 
 export function useHighlights() {
+  const cardNumberRef = ref<HTMLElement>()
+  const cardHolderRef = ref<HTMLElement>()
+  const expiresRef = ref<HTMLElement>()
+  const wrapperRef = ref<HTMLElement>()
   const focusedElName = ref<InputName>()
+  const highlightWrapperStyles = ref<CSSProperties>({})
 
   function togglefocusedElName(event: Event) {
     const el = event.target as HTMLInputElement
@@ -14,5 +19,54 @@ export function useHighlights() {
     focusedElName.value = el.dataset.focused as InputName
   }
 
-  return { focusedElName, togglefocusedElName }
+  async function replaceWrapper(name?: InputName) {
+    if (!name || !wrapperRef.value) {
+      return
+    } else if (name === 'cvv') {
+      highlightWrapperStyles.value = {
+        display: 'none',
+      }
+      return
+    }
+
+    const OFFSET = 8
+
+    await nextTick()
+
+    const htmlElement = setElement(name)
+
+    function setElement(el: InputName): HTMLElement | undefined {
+      const dict = {
+        'card-number': cardNumberRef.value,
+        'card-holder': cardHolderRef.value,
+        'expiration-date': expiresRef.value,
+        cvv: undefined,
+      }
+
+      return dict[el]
+    }
+
+    if (htmlElement === undefined) {
+      return
+    }
+
+    highlightWrapperStyles.value = {
+      display: 'block',
+      width: htmlElement.clientWidth + OFFSET + 'px',
+      height: htmlElement.clientHeight + OFFSET + 'px',
+      top: htmlElement.offsetTop - OFFSET + 'px',
+      left: htmlElement.offsetLeft - OFFSET + 'px',
+    }
+  }
+
+  return {
+    replaceWrapper,
+    focusedElName,
+    togglefocusedElName,
+    cardNumberRef,
+    cardHolderRef,
+    expiresRef,
+    wrapperRef,
+    highlightWrapperStyles,
+  }
 }
