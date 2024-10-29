@@ -1,15 +1,20 @@
 <template>
   <div class="credit-card-form">
-    <form @submit.prevent="checkForm" @click="onFormClick">
-      <CreditCard :visibleSide="visibleSide" :focusedElement="focusedElement" />
+    <form @submit.prevent="onSubmit" @click="onFormClick">
+      <CreditCard
+        :visibleSide="visibleSide"
+        :focusedElName="focusedElName"
+        :data="data"
+        :cardOrganization="cardOrganization"
+      />
 
       <div class="credit-card-form__item">
         <label>Card number</label>
+
         <input
+          v-maska:unmaskedCardNumber.unmasked="cardOrganization?.mask"
+          v-model="maskedCardNumber"
           type="text"
-          :value="cardNumber"
-          @input="onNumberChange"
-          :maxlength="LENGTH_WITH_SPACES"
           data-focused="card-number"
         />
       </div>
@@ -53,7 +58,7 @@
           <input
             type="text"
             v-model="cvv"
-            :maxlength="CVV_LENGTH"
+            :maxlength="CVV_MAX_LENGHT"
             data-focused="cvv"
           />
         </div>
@@ -71,100 +76,58 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useCardStore } from './store/card'
-import { CARD_NUMBER_PLACEHOLDER } from './placeholders'
+import { vMaska } from 'maska/vue'
+import { computed, ref } from 'vue'
+import type { CreditCardInputs, SideName } from './types'
+import { generateMonthOptions, generateYearsOptions } from './components/utils'
+
+import { useHighlights } from './highlits'
 
 import CreditCard from '@/components/CreditCard.vue'
+import { getCardOrganizationData } from './formatting'
+const { focusedElName, togglefocusedElName } = useHighlights()
+const CVV_MAX_LENGHT = 3
 
-const { changeCardNumber, changeName, changeMonth, changeYear, changeCvv } =
-  useCardStore()
+const monthOptions = generateMonthOptions()
+const yearOptions = generateYearsOptions()
 
-const LENGTH_WITH_SPACES = 19
-const MASK = CARD_NUMBER_PLACEHOLDER.split('')
-const CVV_LENGTH = 3
-
-const monthOptions = (() => {
-  const res = []
-  for (let i = 1; i <= 12; i++) {
-    res.push(`${i > 9 ? i : '0' + i}`)
-  }
-  return res
-})()
-
-const yearOptions = (() => {
-  const res = []
-
-  const d = new Date()
-  const y = d.getFullYear()
-
-  for (let i = y; i <= y + 10; i++) {
-    res.push(i)
-  }
-  return res
-})()
-
-const cardNumber = ref('')
 const name = ref('')
 const cvv = ref('')
 const month = ref('')
 const year = ref('')
-const visibleSide = ref('front')
-const focusedElement = ref('')
+const visibleSide = ref<SideName>('front')
 
-const isValid = computed(() => {
-  const cardIsValid = cardNumber.value.length === 19
-  const cvvIsValid = cvv.value.length === 3
+const maskedCardNumber = ref('')
+const unmaskedCardNumber = ref('')
 
-  return (
-    cardIsValid && name.value.length && cvvIsValid && month.value && year.value
-  )
-})
+defineExpose({ unmaskedCardNumber })
 
-watch(cardNumber, (n, oldV) => addSpace(n, oldV))
-watch(name, n => changeName(n))
-watch(year, y => changeYear(y))
-watch(month, m => changeMonth(m))
-watch(cvv, c => changeCvv(c))
+const cardOrganization = computed(() =>
+  getCardOrganizationData(unmaskedCardNumber.value),
+)
 
-function addSpace(v: string, oldV: string) {
-  const LENGHT_DICT = [4, 9, 14]
-  const isExisted = LENGHT_DICT.indexOf(v.length) >= 0
-  const increase = v.length > oldV.length
+const data = computed(
+  (): CreditCardInputs => ({
+    month: month.value,
+    year: year.value,
+    cardNumber: unmaskedCardNumber.value,
+    name: name.value,
+    cvv: cvv.value,
+  }),
+)
 
-  if (increase && isExisted) {
-    const arr = cardNumber.value.split('')
-    arr.push(' ')
-    cardNumber.value = arr.join('')
-  }
-
-  const res = [
-    ...cardNumber.value.split(''),
-    ...MASK.slice(cardNumber.value.length),
-  ].join('')
-
-  changeCardNumber(res)
-}
-
-function onNumberChange(event: Event) {
-  const targetEl = event.target as HTMLInputElement
-
-  const str = targetEl.value
-  const regExp = /[a-zA-Z]/gm
-  const res = str.match(regExp)
-
-  if (res && res.length > 0) {
-    targetEl.value = cardNumber.value
-    return
-  }
-
-  const input = targetEl.value
-  cardNumber.value = input
-}
+const isValid = computed(
+  () =>
+    maskedCardNumber.value.length === cardOrganization.value?.mask.length &&
+    name.value.length &&
+    cvv.value.length === 3 &&
+    month.value &&
+    year.value,
+)
 
 function onFormClick(event: Event) {
   toggleVisibleSide(event)
-  toggleFocusedElement(event)
+  togglefocusedElName(event)
 }
 
 function toggleVisibleSide(event: Event) {
@@ -177,17 +140,7 @@ function toggleVisibleSide(event: Event) {
   visibleSide.value = el.dataset.focused === 'cvv' ? 'back' : 'front'
 }
 
-function toggleFocusedElement(event: Event) {
-  const el = event.target as HTMLInputElement
-
-  if (!el.dataset || !el.dataset.focused) {
-    return
-  }
-
-  focusedElement.value = el.dataset.focused
-}
-
-function checkForm() {
+function onSubmit() {
   if (!isValid.value) {
     console.log('Форма не отправлена')
   }

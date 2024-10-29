@@ -1,34 +1,38 @@
 <template>
   <div class="credit-card">
-    <div class="credit-card__wrapper" ref="wrapperRef"></div>
+    <div class="credit-card__wrapper" ref="wrapperRef" :style="styles"></div>
+
     <div v-if="visibleSide === 'front'" class="credit-card__front-side">
       <div class="credit-card__top">
         <img src="/chip.png" />
-        <img src="/visa.png" />
+        <img v-if="bankImg" :src="'/' + bankImg" />
       </div>
 
       <div class="credit-card__center" ref="cardNumberRef">
-        <p>{{ cardNumber }}</p>
+        <p>{{ formattedCardNumber }}</p>
       </div>
 
       <ul class="credit-card__bottom">
         <li ref="cardHolderRef">
           <p>Card Holder</p>
-          <p>{{ name }}</p>
+          <p>{{ formattedCardHolder }}</p>
         </li>
 
         <li ref="expiresRef">
           <p>Expires</p>
-          <p :style="{ 'font-size': size }">{{ month }}/{{ year }}</p>
+          <p :style="{ 'font-size': size }">
+            {{ formattedMonth }}/{{ formattedYear }}
+          </p>
         </li>
       </ul>
     </div>
+
     <div v-else class="credit-card__back-side">
       <div class="credit-card__cvv">
         <p>CVV</p>
         <p><span v-for="s in stars" :key="s">*</span></p>
         <div class="credit-card__img">
-          <img src="/visa.png" />
+          <img v-if="bankImg" :src="'/' + bankImg" />
         </div>
       </div>
     </div>
@@ -36,31 +40,85 @@
 </template>
 
 <script lang="ts" setup>
-import { useCardStore } from '@/store/card'
-import { storeToRefs } from 'pinia'
-import { computed, nextTick, ref, watch } from 'vue'
-const { month, year, cardNumber, name, cvv } = storeToRefs(useCardStore())
+import type { CardOrganizationData, CreditCardInputs, InputName } from '@/types'
+import {
+  defineProps,
+  computed,
+  nextTick,
+  ref,
+  watchEffect,
+  type CSSProperties,
+} from 'vue'
 
-const props = defineProps({
-  visibleSide: { type: String, required: true },
-  focusedElement: { type: String, required: false },
+import { useFormatting } from '@/formatting'
+
+const {
+  showFormattedCardHolder,
+  showFormattedCardNumber,
+  showFormattedYear,
+  showFormattedMonth,
+} = useFormatting()
+
+type Props = {
+  visibleSide: string
+  focusedElName?: InputName
+  data: CreditCardInputs
+  cardOrganization?: CardOrganizationData
+}
+
+const props = defineProps<Props>()
+
+const cardNumberRef = ref<HTMLElement>()
+const cardHolderRef = ref<HTMLElement>()
+const expiresRef = ref<HTMLElement>()
+const wrapperRef = ref<HTMLElement>()
+const styles = ref<CSSProperties>({})
+
+type ImgType = {
+  [k: string]: string
+}
+
+const bankImg = computed((): string => {
+  if (!props.cardOrganization) {
+    return ''
+  }
+
+  const dict: ImgType = {
+    visa: 'visa.png',
+    'american Express': 'american-express.png',
+    'diners club': 'diners-club.png',
+    jcb: 'jcb.png',
+    masterCard: 'mastercard.png',
+    discover: 'discover.png',
+  }
+
+  return dict[props.cardOrganization.title]
 })
 
-const stars = computed(() => cvv.value.length)
-const cardNumberRef = ref()
-const cardHolderRef = ref()
-const expiresRef = ref()
-const wrapperRef = ref()
+const stars = computed(() => props.data.cvv.length)
 
 const size = computed(() => {
   const regExp = /[1-9]/gm
-  const res = `${month.value}${year.value}`.match(regExp)
+  const res = `${props.data.month}${props.data.year}`.match(regExp)
   return res && res.length > 0 ? '21px' : 'inherit'
 })
 
-watch(() => props.focusedElement, replaceWrapper)
+const formattedCardNumber = computed(() =>
+  showFormattedCardNumber(props.data.cardNumber),
+)
+const formattedYear = computed(() => showFormattedYear(props.data.year))
+const formattedMonth = computed(() => showFormattedMonth(props.data.month))
+const formattedCardHolder = computed(() =>
+  showFormattedCardHolder(props.data.name),
+)
 
-function replaceWrapper() {
+watchEffect(() => replaceWrapper(props.focusedElName))
+
+async function replaceWrapper(name?: InputName) {
+  if (!name || !wrapperRef.value) {
+    return
+  }
+
   const OFFSET = 8
 
   if (props.visibleSide === 'back') {
@@ -68,31 +126,32 @@ function replaceWrapper() {
     return
   }
 
-  nextTick(() => {
-    let element
+  await nextTick()
 
-    switch (props.focusedElement) {
-      case 'card-number':
-        element = cardNumberRef.value
-        break
-      case 'card-holder':
-        element = cardHolderRef.value
-        break
-      case 'expiration-date':
-        element = expiresRef.value
-        break
-      default:
-        element = null
+  const htmlElement = setElement(name)
+
+  function setElement(el: InputName): HTMLElement | undefined {
+    const dict = {
+      'card-number': cardNumberRef.value,
+      'card-holder': cardHolderRef.value,
+      'expiration-date': expiresRef.value,
+      cvv: undefined,
     }
 
-    if (element && wrapperRef.value) {
-      wrapperRef.value.style.display = 'block'
-      wrapperRef.value.style.width = element.clientWidth + OFFSET + 'px'
-      wrapperRef.value.style.height = element.clientHeight + 'px'
-      wrapperRef.value.style.top = element.offsetTop + 'px'
-      wrapperRef.value.style.left = element.offsetLeft - OFFSET + 'px'
-    }
-  })
+    return dict[el]
+  }
+
+  if (htmlElement === undefined) {
+    return
+  }
+
+  styles.value = {
+    display: 'block',
+    width: htmlElement.clientWidth + OFFSET + 'px',
+    height: htmlElement.clientHeight + 'px',
+    top: htmlElement.offsetTop + 'px',
+    left: htmlElement.offsetLeft - OFFSET + 'px',
+  }
 }
 </script>
 
