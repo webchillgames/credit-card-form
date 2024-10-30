@@ -24,7 +24,8 @@ export function useHighlights() {
       return
     } else if (name === 'cvv') {
       highlightWrapperStyles.value = {
-        display: 'none',
+        ...highlightWrapperStyles.value,
+        opacity: 0,
       }
       return
     }
@@ -51,11 +52,12 @@ export function useHighlights() {
     }
 
     highlightWrapperStyles.value = {
-      display: 'block',
+      opacity: 1,
       width: htmlElement.clientWidth + OFFSET + 'px',
       height: htmlElement.clientHeight + OFFSET + 'px',
       top: htmlElement.offsetTop - OFFSET + 'px',
       left: htmlElement.offsetLeft - OFFSET + 'px',
+      display: 'block',
     }
   }
 

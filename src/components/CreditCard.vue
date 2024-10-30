@@ -1,5 +1,5 @@
 <template>
-  <div class="credit-card" :class="visibleSide">
+  <div class="credit-card">
     <HighlightWrapper
       ref="wrapperRef"
       :highlightWrapperStyles="highlightWrapperStyles"
@@ -12,7 +12,12 @@
       </div>
 
       <div class="credit-card__center" ref="cardNumberRef">
-        <p>{{ formattedCardNumber }}</p>
+        <span v-for="(c, i) in formattedCardNumber" :key="i">
+          <Transition name="char">
+            <span v-if="c === '#'">#</span>
+            <span v-else> {{ c }}</span>
+          </Transition>
+        </span>
       </div>
 
       <ul class="credit-card__bottom">
@@ -21,10 +26,12 @@
           <p>{{ formattedCardHolder }}</p>
         </li>
 
-        <li ref="expiresRef">
+        <li ref="expiresRef" class="credit-card__expires">
           <p>Expires</p>
-          <p :style="{ 'font-size': size }">
-            {{ formattedMonth }}/{{ formattedYear }}
+          <p>
+            <span>{{ formattedMonth }}</span>
+            <span>/</span>
+            <span>{{ formattedYear }}</span>
           </p>
         </li>
       </ul>
@@ -90,14 +97,8 @@ const cvvStars = computed(() => {
   })
 })
 
-const size = computed(() => {
-  const regExp = /[1-9]/gm
-  const res = `${props.data.month}${props.data.year}`.match(regExp)
-  return res && res.length > 0 ? '21px' : 'inherit'
-})
-
 const formattedCardNumber = computed(() => {
-  return showFormattedCardNumber(props.data.cardNumber)
+  return showFormattedCardNumber(props.data.cardNumber).split('')
 })
 const formattedYear = computed(() => showFormattedYear(props.data.year))
 const formattedMonth = computed(() => showFormattedMonth(props.data.month))
@@ -139,7 +140,7 @@ watchEffect(() => replaceWrapper(props.focusedElName))
 
   &__front-side {
     display: grid;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: 1fr max-content 1fr;
     height: 100%;
   }
 
@@ -150,13 +151,14 @@ watchEffect(() => replaceWrapper(props.focusedElName))
 
   &__center {
     display: flex;
-    align-items: center;
+    justify-content: center;
 
-    p {
-      text-align: center;
-      font-size: 26px;
-      letter-spacing: 1px;
-      margin: 0;
+    > span {
+      white-space: break-spaces;
+      position: relative;
+      display: flex;
+      font-size: 25px;
+      line-height: 27px;
     }
   }
 
@@ -186,6 +188,15 @@ watchEffect(() => replaceWrapper(props.focusedElName))
     li:first-child {
       overflow: hidden;
       white-space: nowrap;
+    }
+  }
+
+  &__expires {
+    width: 60px;
+
+    p {
+      display: flex;
+      justify-content: space-between;
     }
   }
 
@@ -245,5 +256,24 @@ watchEffect(() => replaceWrapper(props.focusedElName))
       }
     }
   }
+}
+
+.char-enter-active,
+.char-leave-active {
+  transition: all 0.5s;
+}
+
+.char-enter-active {
+  position: absolute;
+}
+
+.char-enter-from {
+  transform: translateY(5px);
+  opacity: 0;
+}
+
+.char-leave-to {
+  transform: translateY(-5px);
+  opacity: 0;
 }
 </style>
