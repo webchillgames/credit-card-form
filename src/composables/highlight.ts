@@ -19,12 +19,12 @@ export function useHighlight(props: CCredictCardProps) {
 
   async function moveHighlight() {
     if (!props.focusedElement) {
-      highlightStyles.value = { display: 'none' }
+      highlightStyles.value = { ...highlightStyles.value, opacity: '0' }
       return
     }
 
     if (props.visibleSide === 'back') {
-      highlightStyles.value = { display: 'none' }
+      highlightStyles.value = { opacity: 0 }
       return
     }
 
@@ -37,11 +37,12 @@ export function useHighlight(props: CCredictCardProps) {
     }
 
     highlightStyles.value = {
-      display: 'block',
+      // display: 'block',
       width: element.clientWidth + HORIZONTAL_OFFSET + 'px',
       height: element.clientHeight + 'px',
       top: element.offsetTop + 'px',
       left: element.offsetLeft - HORIZONTAL_OFFSET + 'px',
+      opacity: '1'
     }
   }
 

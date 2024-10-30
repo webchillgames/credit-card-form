@@ -8,7 +8,14 @@
       </div>
 
       <div class="credit-card__center" ref="cardNumberRef">
-        <p>{{ formattedCardNumber }}</p>
+        <p>
+          <span class="credit-card__number-n" v-for="char, index in formattedCardNumberAsArray" :key="index">
+            <Transition name="charUp">
+              <span v-if="char !== '#'">{{ char }}</span>
+              <span v-else>{{ '#' }}</span>
+            </Transition>
+          </span>
+        </p>
       </div>
 
       <ul class="credit-card__bottom">
@@ -17,12 +24,12 @@
           <p>{{ cardData.cardHolder || NAME_PLACEHOLDER }}</p>
         </li>
 
-        <li ref="expiresRef">
+        <li ref="expiresRef" class="credit-card__expires">
           <p>Expires</p>
-          <p :style="{ 'font-size': size }">
-            {{ cardData.month || MONTH_PLACEHOLDER }}/{{
+          <p class="credit-card__expires-value">
+            <span>{{ cardData.month || MONTH_PLACEHOLDER }}</span><span>/</span><span>{{
               cuttedYear || YEAR_PLACEHOLDER
-            }}
+            }}</span>
           </p>
         </li>
       </ul>
@@ -76,14 +83,17 @@ const formattedCardNumber = computed(() => {
 const cuttedYear = computed(() => props.cardData.year.slice(-2))
 const hiddenCVV = computed(() => '*'.repeat(props.cardData.cvv.length))
 
-const size = computed(() => {
-  const regExp = /[1-9]/gm
-  const res = `${props.cardData.month}${props.cardData.year}`.match(regExp)
-  return res && res.length > 0 ? '21px' : 'inherit'
-})
+// const size = computed(() => {
+//   const regExp = /[1-9]/gm
+//   const res = `${props.cardData.month}${props.cardData.year}`.match(regExp)
+//   return res && res.length > 0 ? '21px' : 'inherit'
+// })
 
 const { cardNumberRef, cardHolderRef, expiresRef, highlightStyles } =
   useHighlight(props)
+
+
+const formattedCardNumberAsArray = computed(() => formattedCardNumber.value.split(''))
 </script>
 
 <style lang="scss">
@@ -128,7 +138,18 @@ const { cardNumberRef, cardHolderRef, expiresRef, highlightStyles } =
       font-size: 26px;
       letter-spacing: 1px;
       margin: 0;
+      display: flex;
+      position: relative;
+
+      span {
+        white-space: break-spaces;
+      }
     }
+  }
+
+  &__number-n {
+    position: relative;
+    display: flex;
   }
 
   &__bottom {
@@ -158,6 +179,15 @@ const { cardNumberRef, cardHolderRef, expiresRef, highlightStyles } =
       overflow: hidden;
       white-space: nowrap;
     }
+  }
+
+  &__expires {
+    width: 59px;
+  }
+
+  &__expires-value {
+    display: flex;
+    justify-content: space-between;
   }
 
   &__back-side {
@@ -212,6 +242,24 @@ const { cardNumberRef, cardHolderRef, expiresRef, highlightStyles } =
     z-index: 1;
     border-radius: $step;
     transition: all 0.3s;
+    user-select: none;
   }
+}
+
+.charUp-enter-active {
+  position: absolute;
+}
+.charUp-enter-active,
+.charUp-leave-active {
+  transition: all 0.5s ease;
+}
+
+.charUp-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.charUp-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
 }
 </style>
