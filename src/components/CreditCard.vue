@@ -246,6 +246,15 @@ watchEffect(() => replaceWrapper(props.focusedElName))
     }
   }
 
+  @media (max-width: 480px) {
+    &__center {
+      > span {
+        font-size: 18px;
+        line-height: 24px;
+      }
+    }
+  }
+
   @media (max-width: 321px) {
     width: 100%;
 
