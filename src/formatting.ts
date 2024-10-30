@@ -53,7 +53,7 @@ export function useFormatting() {
 
 export function getCardOrganizationData(
   cardNumber: string,
-): CardOrganizationData | undefined {
+): CardOrganizationData {
   const americanExpress = {
     title: 'american Express',
     mask: '#### ###### #####',
@@ -121,5 +121,10 @@ export function getCardOrganizationData(
 
   const key = objKeys.find(k => cardNumber.startsWith(k))
 
-  return key ? creditCardTypes[key] : undefined
+  return key
+    ? creditCardTypes[key]
+    : {
+        title: null,
+        mask: '#### #### #### ####',
+      }
 }
